@@ -1,13 +1,10 @@
-# My typical Makefile format, but without an include directory
-
 PROJECT_NAME=pwm
 SRC_DIR=src
-#INC_DIR=include
+INC_DIR=include
 OBJ_DIR=obj
 BIN_DIR=bin
 
-#CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c11 -ggdb -I$(INC_DIR)
-CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c11 -ggdb
+CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c11 -ggdb -I$(INC_DIR)
 CFLAGS += -Wno-unused
 LDFLAGS = -lxcb -lxkbcommon
 

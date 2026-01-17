@@ -2,9 +2,8 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-/* Config */
-#define LOGS 1      /* Enable logging */
-#define ANSI_LOGS 1 /* Enable formatted logs with ANSI escape codes */
+/* Includes */
+#include <config.h>
 
 /* Log levels */
 typedef enum {

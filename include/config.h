@@ -6,7 +6,7 @@
 #define LOGS 1      /* Enable logging */
 #define ANSI_LOGS 1 /* Enable formatted logs with ANSI escape codes */
 
-/* Keymaps */
+/* Keymaps - keys*/
 #define SHIFT XCB_MOD_MASK_SHIFT
 #define LOCK XCB_MOD_MASK_LOCK
 #define CONTROL XCB_MOD_MASK_CONTROL
@@ -15,8 +15,10 @@
 #define MOD3 XCB_MOD_MASK_3
 #define MOD4 XCB_MOD_MASK_4
 #define MOD5 XCB_MOD_MASK_5
+/* Keymaps - commands */
 static const char *termcmd[] = { "st", (void *)(0) };
 static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
+/* Keymaps */
 #define KEYMAPS \
     { MOD1|SHIFT, XKB_KEY_c, handle_keymap_quit, { .i32 = 0 } },\
     { MOD1|SHIFT, XKB_KEY_q, handle_keymap_destroy, { .i32 = 0 } },\

@@ -16,8 +16,11 @@
 #define MOD4 XCB_MOD_MASK_4
 #define MOD5 XCB_MOD_MASK_5
 static const char *termcmd[] = { "st", (void *)(0) };
+static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
 #define KEYMAPS \
     { MOD1|SHIFT, XKB_KEY_c, handle_keymap_quit, { .i32 = 0 } },\
-    { MOD1, XKB_KEY_Return, handle_keymap_spawnprocess, { .ptr = termcmd } },
+    { MOD1|SHIFT, XKB_KEY_q, handle_keymap_destroy, { .i32 = 0 } },\
+    { MOD1, XKB_KEY_Return, handle_keymap_spawnprocess, { .ptr = termcmd } },\
+    { MOD1, XKB_KEY_d, handle_keymap_spawnprocess, { .ptr = dmenucmd } },
 
 #endif /* CONFIG_H */

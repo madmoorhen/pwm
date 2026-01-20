@@ -7,6 +7,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <xkbcommon/xkbcommon.h>
@@ -22,6 +25,8 @@ static xcb_window_t root = 0;
 static struct xkb_context *xkb_context = NULL;
 static struct xkb_keymap *xkb_keymap = NULL;
 static struct xkb_state *xkb_state = NULL;
+static xcb_atom_t WM_PROTOCOLS = 0;
+static xcb_atom_t WM_DELETE_WINDOW = 0;
 
 /* Setup */
 static xcb_connection_t *get_connection(void);
@@ -63,6 +68,9 @@ typedef struct {
 } keymap_t;
 /* Keymap handlers */
 static void handle_keymap_quit(
+    xcb_key_press_event_t *event, keymap_data_t data
+);
+static void handle_keymap_destroy(
     xcb_key_press_event_t *event, keymap_data_t data
 );
 static void handle_keymap_spawnprocess(

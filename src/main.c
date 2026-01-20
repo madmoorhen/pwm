@@ -9,6 +9,9 @@ int main(int argc, char *argv[]) {
   screen = get_screen();
   root = get_root();
   log_setup_info();
+  /* Get atoms */
+  WM_PROTOCOLS = get_atom("WM_PROTOCOLS");
+  WM_DELETE_WINDOW = get_atom("WM_DELETE_WINDOW");
   /* Set root event mask */
   set_event_mask(
       root,
@@ -27,7 +30,7 @@ int main(int argc, char *argv[]) {
 
   /* Event loop */
   running = true;
-  eventloop();
+  while (running) eventloop();
 
   /* Cleanup */
   unref_xkb_state();
@@ -47,6 +50,7 @@ static xcb_connection_t *get_connection(void) {
   }
   return _connection;
 }
+
 static void disconnect(void) {
   xcb_disconnect(connection);
 }
@@ -123,7 +127,14 @@ static void log_setup_info(void) {
       screen->height_in_pixels
   );
 }
-static void eventloop(void) { }
+static void eventloop(void) {
+  xcb_generic_event_t *event = xcb_wait_for_event(connection);
+  uint8_t type = event->response_type & ~0x80;
+  if (type < (sizeof(EVENT_HANDLERS)/sizeof(EVENT_HANDLERS[0])))
+    if (EVENT_HANDLERS[type])
+      EVENT_HANDLERS[type](event);
+  free(event);
+}
 
 /* Manipulating windows */
 static void set_event_mask(xcb_window_t window, uint32_t event_mask) {
@@ -224,10 +235,53 @@ static void grab_keymap(uint16_t modifiers, xkb_keysym_t keysym) {
 /* Keymap handlers */
 static void handle_keymap_quit(
     xcb_key_press_event_t *event, keymap_data_t data
-) { }
+) {
+  running = false;
+}
+static void handle_keymap_destroy(
+    xcb_key_press_event_t *event, keymap_data_t data
+) {
+  xcb_generic_error_t *error = NULL;
+  const xcb_client_message_event_t wm_event = {
+    .response_type = XCB_CLIENT_MESSAGE,
+    .format = 32,
+    .window = event->child,
+    .type = WM_PROTOCOLS,
+    .data.data32 = { WM_DELETE_WINDOW, XCB_CURRENT_TIME, 0, 0, 0 }
+  };
+  xcb_void_cookie_t cookie = xcb_send_event(
+      connection,
+      0, event->child,
+      XCB_EVENT_MASK_NO_EVENT,
+      (const char *)&wm_event
+  );
+  error = xcb_request_check(connection, cookie);
+  if (error) {
+    int error_code = error->error_code;
+    free(error);
+    log_msg(
+        LOG_LEVEL_ERROR,
+        "Failed to send WM_DELETE_WINDOW event (%d)", error_code
+    );
+  }
+}
 static void handle_keymap_spawnprocess(
     xcb_key_press_event_t *event, keymap_data_t data
-) { }
+) {
+  if (!fork()) {
+    int devnull = open("/dev/null", O_WRONLY);
+    if (devnull < 0)
+      log_msg(
+          LOG_LEVEL_ERROR,
+          "Failed to open /dev/null (%s)", strerror(errno)
+      );
+    dup2(devnull, STDOUT_FILENO);
+    dup2(devnull, STDERR_FILENO);
+    close(devnull);
+
+    execvp(((char **)data.ptr)[0], ((char **)data.ptr));
+  }
+}
 
 /* XCB handlers */
 static void handle_xcb_create_notify(xcb_create_notify_event_t *event) { }
@@ -237,10 +291,58 @@ static void handle_xcb_unmap_notify(xcb_unmap_notify_event_t *event) { }
 static void handle_xcb_reparent_notify(xcb_reparent_notify_event_t *event) { }
 static void handle_xcb_configure_notify(xcb_configure_notify_event_t *event) { }
 static void handle_xcb_gravity_notify(xcb_gravity_notify_event_t *event) { }
-static void handle_xcb_map_request(xcb_map_request_event_t *event) { }
-static void handle_xcb_configure_request(xcb_configure_request_event_t *event) { }
+static void handle_xcb_map_request(xcb_map_request_event_t *event) {
+  log_msg(LOG_LEVEL_INFO, "Processing map request...");
+  xcb_void_cookie_t cookie = xcb_map_window(connection, event->window);
+  xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+  if (error) {
+    log_msg(LOG_LEVEL_ERROR, "Failed to map window (%d)", error->error_code);
+    free(error);
+  }
+  xcb_flush(connection);
+}
+static void handle_xcb_configure_request(xcb_configure_request_event_t *event) {
+  log_msg(LOG_LEVEL_INFO, "Processing configure request...");
+
+  uint32_t value_list[7];
+  uint8_t num_values = 0;
+  if (event->value_mask & XCB_CONFIG_WINDOW_X)
+    value_list[num_values++] = event->x;
+  if (event->value_mask & XCB_CONFIG_WINDOW_Y)
+    value_list[num_values++] = event->y;
+  if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH)
+    value_list[num_values++] = event->width;
+  if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT)
+    value_list[num_values++] = event->height;
+  if (event->value_mask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
+    value_list[num_values++] = event->border_width;
+  if (event->value_mask & XCB_CONFIG_WINDOW_SIBLING)
+    value_list[num_values++] = event->sibling;
+  if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE)
+    value_list[num_values++] = event->stack_mode;
+
+  xcb_void_cookie_t cookie = xcb_configure_window(
+      connection, event->window,
+      event->value_mask, value_list
+  );
+  xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+  if (error) {
+    log_msg(
+        LOG_LEVEL_ERROR,
+        "Failed to configure window (%d)",
+        error->error_code
+    );
+    free(error);
+  }
+  xcb_flush(connection);
+}
 static void handle_xcb_circulate_request(xcb_circulate_request_event_t *event) { }
-static void handle_xcb_key_press(xcb_key_press_event_t *event) { }
+static void handle_xcb_key_press(xcb_key_press_event_t *event) {
+  xkb_keysym_t keysym = xkb_state_key_get_one_sym(xkb_state, event->detail);
+  for (uint32_t i = 0; i < NUM_KEYMAPS; i++)
+    if ((event->state == _KEYMAPS[i].modifiers) && keysym == _KEYMAPS[i].keysym)
+      _KEYMAPS[i].handler(event, _KEYMAPS[i].data);
+}
 static void handle_xcb_key_release(xcb_key_release_event_t *event) { }
 static void handle_xcb_focus_in(xcb_focus_in_event_t *event) { }
 static void handle_xcb_focus_out(xcb_focus_out_event_t *event) { }

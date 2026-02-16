@@ -16,7 +16,7 @@
 #define MOD4 XCB_MOD_MASK_4
 #define MOD5 XCB_MOD_MASK_5
 /* Keymaps - commands */
-static const char *termcmd[] = { "st", (void *)(0) };
+static const char *termcmd[] = { "alacritty", (void *)(0) };
 static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
 /* Keymaps */
 #define KEYMAPS \

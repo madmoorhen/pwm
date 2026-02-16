@@ -30,6 +30,6 @@ clean:
 	rm -rf $(BIN_DIR)
 
 test: build
-	Xephyr -br -ac -noreset -screen 800x400 :2&
+	Xephyr -br -ac -noreset -screen 1280x720 :2&
 	@sleep 1
 	DISPLAY=:2 ./$(BIN_DIR)/$(PROJECT_NAME);pkill Xephyr

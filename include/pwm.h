@@ -100,6 +100,8 @@ DECLARE_HANDLER(KEY_PRESS, key_press)
 DECLARE_HANDLER(KEY_RELEASE, key_release)
 DECLARE_HANDLER(FOCUS_IN, focus_in)
 DECLARE_HANDLER(FOCUS_OUT, focus_out)
+DECLARE_HANDLER(CLIENT_MESSAGE, client_message)
+DECLARE_HANDLER(PROPERTY_NOTIFY, property_notify)
 #undef DECLARE_HANDLER
 static void (*EVENT_HANDLERS[])(xcb_generic_event_t *) = {
 #define ADD_HANDLER(event) [XCB_##event] = event_handler_##event,
@@ -117,6 +119,8 @@ static void (*EVENT_HANDLERS[])(xcb_generic_event_t *) = {
   ADD_HANDLER(KEY_RELEASE)
   ADD_HANDLER(FOCUS_IN)
   ADD_HANDLER(FOCUS_OUT)
+  ADD_HANDLER(CLIENT_MESSAGE)
+  ADD_HANDLER(PROPERTY_NOTIFY)
 #undef ADD_HANDLER
 };
 

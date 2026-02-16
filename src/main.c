@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
       | XCB_EVENT_MASK_KEY_PRESS
       | XCB_EVENT_MASK_KEY_RELEASE
       | XCB_EVENT_MASK_FOCUS_CHANGE
+      | XCB_EVENT_MASK_PROPERTY_CHANGE
   );
   /* Keyboard setup */
   xkb_context = create_xkb_context();
@@ -346,3 +347,5 @@ static void handle_xcb_key_press(xcb_key_press_event_t *event) {
 static void handle_xcb_key_release(xcb_key_release_event_t *event) { }
 static void handle_xcb_focus_in(xcb_focus_in_event_t *event) { }
 static void handle_xcb_focus_out(xcb_focus_out_event_t *event) { }
+static void handle_xcb_client_message(xcb_client_message_event_t *event) { }
+static void handle_xcb_property_notify(xcb_property_notify_event_t *event) { }

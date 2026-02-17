@@ -6,6 +6,10 @@
 #define LOGS 1      /* Enable logging */
 #define ANSI_LOGS 1 /* Enable formatted logs with ANSI escape codes */
 
+/* Colors */
+#define INACTIVE_BORDER 0x111111
+#define ACTIVE_BORDER 0xb3ebf2
+
 /* Keymaps - keys*/
 #define SHIFT XCB_MOD_MASK_SHIFT
 #define LOCK XCB_MOD_MASK_LOCK
@@ -24,5 +28,8 @@ static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
     { MOD1|SHIFT, XKB_KEY_q, handle_keymap_destroy, { .i32 = 0 } },\
     { MOD1, XKB_KEY_Return, handle_keymap_spawnprocess, { .ptr = termcmd } },\
     { MOD1, XKB_KEY_d, handle_keymap_spawnprocess, { .ptr = dmenucmd } },
+
+/* Misc */
+#define MAX_CLIENTS 0xffff
 
 #endif /* CONFIG_H */

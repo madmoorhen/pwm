@@ -16,17 +16,41 @@
 #include <config.h>
 #include <logging.h>
 
+/* Rectangle */
+typedef struct {
+  uint32_t x, y, width, height;
+} rect_t;
+
+/* Client */
+typedef struct {
+  xcb_window_t window;
+  rect_t rect;
+  rect_t old_rect;
+  enum {
+    CLIENT_INVALID = 0,
+    CLIENT_NORMAL,
+    CLIENT_FLOATING,
+    CLIENT_FULLSCREEN,
+    CLIENT_UNMANAGED
+  } type;
+} client_t;
+
 /* Global state */
 static bool running = false;
 static xcb_connection_t *connection = NULL;
 static const xcb_setup_t *setup = NULL;
 static xcb_screen_t *screen = NULL;
 static xcb_window_t root = 0;
+static xcb_colormap_t colormap = 0;
 static struct xkb_context *xkb_context = NULL;
 static struct xkb_keymap *xkb_keymap = NULL;
 static struct xkb_state *xkb_state = NULL;
 static xcb_atom_t WM_PROTOCOLS = 0;
 static xcb_atom_t WM_DELETE_WINDOW = 0;
+static uint32_t active_pixel = 0;
+static uint32_t inactive_pixel = 0;
+static client_t clients[MAX_CLIENTS];
+static client_t *focused_client;
 
 /* Setup */
 static xcb_connection_t *get_connection(void);
@@ -34,15 +58,28 @@ static void disconnect(void);
 static const xcb_setup_t *get_setup(void);
 static xcb_screen_t *get_screen(void);
 static xcb_window_t get_root(void);
+static xcb_colormap_t get_colormap(void);
 static xcb_atom_t get_atom(const char *name);
 static void log_setup_info(void);
+static uint32_t get_pixel(uint32_t colour);
 static void eventloop(void);
 
-/* Manipulating windows */
-static void set_event_mask(xcb_window_t window, uint32_t event_mask);
-static void set_window_rect(
+/* Windows */
+static void window_seteventmask(xcb_window_t window, uint32_t event_mask);
+static void window_setrect(
     xcb_window_t window, uint16_t x, uint16_t y, uint16_t width, uint16_t height
 );
+static void window_setborder(uint32_t pixel);
+static bool window_shouldmanage(xcb_window_t window);
+
+/* Clients */
+static client_t *client_fromwindow(xcb_window_t window);
+static void client_add(xcb_window_t window);
+static void client_remove(client_t *client);
+static void client_focus(client_t *client);
+static void client_unfocus(void);
+static void client_fullscreen(bool fullscreen);
+static void client_floating(bool floating);
 
 /* Keyboard */
 static struct xkb_context *create_xkb_context(void);

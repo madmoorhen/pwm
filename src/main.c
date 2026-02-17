@@ -8,12 +8,13 @@ int main(int argc, char *argv[]) {
   setup = get_setup();
   screen = get_screen();
   root = get_root();
+  colormap = get_colormap();
   log_setup_info();
   /* Get atoms */
   WM_PROTOCOLS = get_atom("WM_PROTOCOLS");
   WM_DELETE_WINDOW = get_atom("WM_DELETE_WINDOW");
   /* Set root event mask */
-  set_event_mask(
+  window_seteventmask(
       root,
       XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
       | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
@@ -22,6 +23,9 @@ int main(int argc, char *argv[]) {
       | XCB_EVENT_MASK_FOCUS_CHANGE
       | XCB_EVENT_MASK_PROPERTY_CHANGE
   );
+  /* Colormap stuff */
+  inactive_pixel = get_pixel(INACTIVE_BORDER);
+  active_pixel = get_pixel(ACTIVE_BORDER);
   /* Keyboard setup */
   xkb_context = create_xkb_context();
   xkb_keymap = create_xkb_keymap();
@@ -69,9 +73,8 @@ static xcb_screen_t *get_screen(void) {
     log_msg(LOG_LEVEL_ERROR, "Failed to get first screen");
   return _screen;
 }
-static xcb_window_t get_root(void) {
-  return screen->root;
-}
+static xcb_window_t get_root(void) { return screen->root; }
+static xcb_colormap_t get_colormap(void) { return screen->default_colormap; }
 static xcb_atom_t get_atom(const char *name) {
   /*
    * It would be better to query for all atoms before reading replies, making
@@ -128,6 +131,27 @@ static void log_setup_info(void) {
       screen->height_in_pixels
   );
 }
+static uint32_t get_pixel(uint32_t color) {
+  xcb_generic_error_t *error = NULL;
+  xcb_alloc_color_cookie_t cookie = xcb_alloc_color(
+      connection, colormap,
+      (color >> 16) | 0xff,
+      (color >> 8) | 0xff,
+      color | 0xff
+  );
+  xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(
+      connection, cookie, &error
+  );
+  if (!reply) {
+    if (error)
+      log_msg(LOG_LEVEL_ERROR, "Failed to get pixel (%d)", error->error_code);
+    else
+      log_msg(LOG_LEVEL_ERROR, "Failed to get pixel");
+  }
+  uint32_t pixel = reply->pixel;
+  free(reply);
+  return pixel;
+}
 static void eventloop(void) {
   xcb_generic_event_t *event = xcb_wait_for_event(connection);
   uint8_t type = event->response_type & ~0x80;
@@ -138,7 +162,7 @@ static void eventloop(void) {
 }
 
 /* Manipulating windows */
-static void set_event_mask(xcb_window_t window, uint32_t event_mask) {
+static void window_seteventmask(xcb_window_t window, uint32_t event_mask) {
   xcb_generic_error_t *error = NULL;
   xcb_void_cookie_t cookie = xcb_change_window_attributes(
       connection, window, XCB_CW_EVENT_MASK, &event_mask
@@ -154,9 +178,21 @@ static void set_event_mask(xcb_window_t window, uint32_t event_mask) {
     );
   }
 }
-static void set_window_rect(
+static void window_setrect(
     xcb_window_t window, uint16_t x, uint16_t y, uint16_t width, uint16_t height
 );
+static void window_setborder(uint32_t pixel);
+static bool window_shouldmanage(xcb_window_t window);
+
+/* Clients */
+static client_t *client_fromwindow(xcb_window_t window);
+static void client_add(xcb_window_t window);
+static void client_remove(client_t *client);
+static void client_focus(client_t *client);
+static void client_unfocus(void);
+static void client_fullscreen(bool fullscreen);
+static void client_floating(bool floating);
+
 
 /* Keyboard */
 static struct xkb_context *create_xkb_context(void) {

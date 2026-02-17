@@ -31,5 +31,6 @@ static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
 
 /* Misc */
 #define MAX_CLIENTS 0xffff
+#define BORDER_WIDTH 2
 
 #endif /* CONFIG_H */

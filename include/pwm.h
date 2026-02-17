@@ -66,10 +66,8 @@ static void eventloop(void);
 
 /* Windows */
 static void window_seteventmask(xcb_window_t window, uint32_t event_mask);
-static void window_setrect(
-    xcb_window_t window, uint16_t x, uint16_t y, uint16_t width, uint16_t height
-);
-static void window_setborder(uint32_t pixel);
+static void window_setrect(xcb_window_t window, rect_t rect);
+static void window_setborder(xcb_window_t window, uint32_t pixel);
 static bool window_shouldmanage(xcb_window_t window);
 
 /* Clients */

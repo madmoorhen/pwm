@@ -178,10 +178,38 @@ static void window_seteventmask(xcb_window_t window, uint32_t event_mask) {
     );
   }
 }
-static void window_setrect(
-    xcb_window_t window, uint16_t x, uint16_t y, uint16_t width, uint16_t height
-);
-static void window_setborder(uint32_t pixel);
+static void window_setrect(xcb_window_t window, rect_t rect);
+static void window_setborder(xcb_window_t window, uint32_t pixel) {
+  uint32_t value_list[] = { BORDER_WIDTH };
+  xcb_void_cookie_t cookie = xcb_configure_window(
+      connection, window,
+      XCB_CONFIG_WINDOW_BORDER_WIDTH, value_list
+  );
+  xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+  if (error) {
+    log_msg(
+        LOG_LEVEL_ERROR,
+        "Failed to configure window (%d)",
+        error->error_code
+    );
+    free(error);
+  }
+  cookie = xcb_change_window_attributes(
+      connection, window,
+      XCB_CW_BORDER_PIXEL, &pixel
+  );
+  error = xcb_request_check(connection, cookie);
+  if (error) {
+    log_msg(
+        LOG_LEVEL_ERROR,
+        "Failed to change window attributes (%d)",
+        error->error_code
+    );
+    free(error);
+  }
+  xcb_flush(connection);
+}
+/* TODO: check override redirect, transient for, net wm window type */
 static bool window_shouldmanage(xcb_window_t window);
 
 /* Clients */

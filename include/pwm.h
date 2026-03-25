@@ -47,6 +47,9 @@ static struct xkb_keymap *xkb_keymap = NULL;
 static struct xkb_state *xkb_state = NULL;
 static xcb_atom_t WM_PROTOCOLS = 0;
 static xcb_atom_t WM_DELETE_WINDOW = 0;
+static xcb_atom_t WM_TRANSIENT_FOR = 0;
+static xcb_atom_t _NET_WM_WINDOW_TYPE = 0;
+static xcb_atom_t _NET_WM_WINDOW_TYPE_DIALOG = 0;
 static uint32_t active_pixel = 0;
 static uint32_t inactive_pixel = 0;
 static client_t clients[MAX_CLIENTS];
@@ -76,8 +79,8 @@ static void client_add(xcb_window_t window);
 static void client_remove(client_t *client);
 static void client_focus(client_t *client);
 static void client_unfocus(void);
-static void client_fullscreen(bool fullscreen);
-static void client_floating(bool floating);
+static void client_setfullscreen(bool fullscreen);
+static void client_setfloating(bool floating);
 
 /* Keyboard */
 static struct xkb_context *create_xkb_context(void);

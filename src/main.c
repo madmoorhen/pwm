@@ -13,9 +13,6 @@ int main(int argc, char *argv[]) {
   /* Get atoms */
   WM_PROTOCOLS = get_atom("WM_PROTOCOLS");
   WM_DELETE_WINDOW = get_atom("WM_DELETE_WINDOW");
-  WM_TRANSIENT_FOR = get_atom("WM_TRANSIENT_FOR");
-  _NET_WM_WINDOW_TYPE = get_atom("_NET_WM_WINDOW_TYPE");
-  _NET_WM_WINDOW_TYPE_DIALOG = get_atom("_NET_WM_WINDOW_TYPE_DIALOG");
   /* Set root event mask */
   window_seteventmask(
       root,
@@ -58,7 +55,6 @@ static xcb_connection_t *get_connection(void) {
   }
   return _connection;
 }
-
 static void disconnect(void) {
   xcb_disconnect(connection);
 }
@@ -232,82 +228,6 @@ static void window_setborder(xcb_window_t window, uint32_t pixel) {
   }
   xcb_flush(connection);
 }
-static bool window_shouldmanage(xcb_window_t window) {
-  bool manage = true;
-
-  /* Check for override_redirect */
-  xcb_generic_error_t *error = NULL;
-  xcb_get_window_attributes_cookie_t attr_cookie = xcb_get_window_attributes(
-      connection, window
-  );
-  xcb_get_window_attributes_reply_t *attr_reply = xcb_get_window_attributes_reply(
-      connection, attr_cookie, &error
-  );
-  if (!attr_reply) {
-    if (error) log_msg(
-          LOG_LEVEL_ERROR, "Failed to get attributes (%d)", error->error_code
-      );
-    else log_msg(LOG_LEVEL_ERROR, "Failed to get attributes");
-  }
-  if (attr_reply->override_redirect)
-    manage = false;
-  free(attr_reply);
-
-  /* Check for WM_TRANSIENT_FOR */
-  xcb_get_property_cookie_t prop_cookie = xcb_get_property(
-      connection, 0, window, WM_TRANSIENT_FOR, XCB_ATOM_WINDOW, 0, 1
-  );
-  xcb_get_property_reply_t *prop_reply = xcb_get_property_reply(
-      connection, prop_cookie, &error
-  );
-  if (!prop_reply) {
-    if (error) log_msg(
-          LOG_LEVEL_ERROR, "Failed to get property (%d)", error->error_code
-      );
-    else log_msg(LOG_LEVEL_ERROR, "Failed to get property");
-  }
-  if (xcb_get_property_value_length(prop_reply) == 1)
-    manage = false;
-  free(prop_reply);
-
-  /* TODO: put where it belongs */
-#if 0 /* This checks if the window should float, not if it should be managed */
-  /* Check _NET_WM_WINDOW_TYPE */
-  prop_cookie = xcb_get_property(
-      connection, 0, window, _NET_WM_WINDOW_TYPE, XCB_ATOM_ATOM, 0, UINT32_MAX
-  );
-  prop_reply = xcb_get_property_reply(
-      connection, prop_cookie, &error
-  );
-  if (!prop_reply) {
-    if (error) log_msg(
-          LOG_LEVEL_ERROR, "Failed to get property (%d)", error->error_code
-      );
-    else log_msg(LOG_LEVEL_ERROR, "Failed to get property");
-  }
-  xcb_atom_t *window_types = (xcb_atom_t *)xcb_get_property_value(reply);
-  size_t count = xcb_get_property_value_length(reply) / sizeof(xcb_atom_t);
-  for (size_t i = 0; i < count; i++)
-    if (window_types[i] == _NET_WM_WINDOW_TYPE_DIALOG) /* floating */continue;
-#endif
-
-  return manage;
-}
-
-/* Clients */
-static client_t *client_fromwindow(xcb_window_t window) {
-  for (size_t i = 0; i < MAX_CLIENTS; i++)
-    if (clients[i].window == window) return &(clients[i]);
-  log_msg(LOG_LEVEL_WARNING, "Couldn't find client with window %d", window);
-  return NULL;
-}
-static void client_add(xcb_window_t window);
-static void client_remove(client_t *client);
-static void client_focus(client_t *client);
-static void client_unfocus(void);
-static void client_setfullscreen(bool fullscreen);
-static void client_setfloating(bool floating);
-
 
 /* Keyboard */
 static struct xkb_context *create_xkb_context(void) {
@@ -387,9 +307,7 @@ static void grab_keymap(uint16_t modifiers, xkb_keysym_t keysym) {
 /* Keymap handlers */
 static void handle_keymap_quit(
     xcb_key_press_event_t *event, keymap_data_t data
-) {
-  running = false;
-}
+) { running = false; }
 static void handle_keymap_destroy(
     xcb_key_press_event_t *event, keymap_data_t data
 ) {

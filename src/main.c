@@ -417,6 +417,15 @@ static void refresh_layout(void) {
     }
   }
 }
+static void client_focus(int32_t client) {
+  if (focused_client >= 0)
+    window_setborder(clients[focused_client].window, inactive_pixel);
+  focused_client = client;
+  if (focused_client >= 0) {
+    window_setborder(clients[focused_client].window, active_pixel);
+    window_focus(clients[focused_client].window);
+  }
+}
 
 /* Keymap handlers */
 static void handle_keymap_quit(
@@ -473,14 +482,13 @@ static void handle_xcb_destroy_notify(xcb_destroy_notify_event_t *event) {
   log_msg(LOG_LEVEL_INFO, "Processing destroy notify...");
   if (focused_client >= 0) {
     if (clients[focused_client].window == event->window) {
-      focused_client = -1;
+      client_focus(-1);
       for (size_t i = 0; i < MAX_CLIENTS; i++) {
         if (
             clients[i].type != CLIENT_INVALID
             && clients[i].window != event->window
         ) {
-          focused_client = i;
-          window_focus(clients[i].window);
+          client_focus(i);
           break;
         }
       }
@@ -569,9 +577,7 @@ static void handle_xcb_map_request(xcb_map_request_event_t *event) {
   for (size_t i = 0; i < MAX_CLIENTS; i++) {
     if (clients[i].type == CLIENT_INVALID) {
       clients[i] = client;
-      focused_client = i;
-      if (clients[focused_client].type != CLIENT_UNMANAGED)
-        window_focus(client.window);
+      client_focus(i);
       break;
     }
   }

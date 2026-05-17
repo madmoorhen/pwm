@@ -89,6 +89,7 @@ static void grab_keymap(uint16_t modifiers, xkb_keysym_t keysym);
 
 /* Misc */
 static void refresh_layout(void);
+static void client_focus(int32_t client);
 
 /* Keymap data */
 typedef union {

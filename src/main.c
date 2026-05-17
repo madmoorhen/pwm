@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
   /* Get atoms */
   WM_PROTOCOLS = get_atom("WM_PROTOCOLS");
   WM_DELETE_WINDOW = get_atom("WM_DELETE_WINDOW");
+  WM_TAKE_FOCUS = get_atom("WM_TAKE_FOCUS");
   /* Set root event mask */
   window_seteventmask(
       root,
@@ -32,6 +33,9 @@ int main(int argc, char *argv[]) {
   xkb_state = create_xkb_state();
   for (uint32_t i = 0; i < NUM_KEYMAPS; i++)
     grab_keymap(_KEYMAPS[i].modifiers, _KEYMAPS[i].keysym);
+
+  /* Clear clients */
+  memset(clients, 0, MAX_CLIENTS*sizeof(client_t));
 
   /* Event loop */
   running = true;
@@ -228,6 +232,46 @@ static void window_setborder(xcb_window_t window, uint32_t pixel) {
   }
   xcb_flush(connection);
 }
+static void window_focus(xcb_window_t window) {
+  xcb_void_cookie_t cookie = xcb_set_input_focus(
+      connection, XCB_INPUT_FOCUS_PARENT,
+      window, XCB_CURRENT_TIME
+  );
+  xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+  if (error) {
+    log_msg(
+        LOG_LEVEL_ERROR,
+        "Failed to set input focus (%d)",
+        error->error_code
+    );
+    free(error);
+  }
+  
+  const xcb_client_message_event_t wm_event = {
+    .response_type = XCB_CLIENT_MESSAGE,
+    .format = 32,
+    .window = window,
+    .type = WM_PROTOCOLS,
+    .data.data32 = { WM_TAKE_FOCUS, XCB_CURRENT_TIME, 0, 0, 0 }
+  };
+  cookie = xcb_send_event(
+      connection,
+      0, window,
+      XCB_EVENT_MASK_NO_EVENT,
+      (const char *)&wm_event
+  );
+  error = xcb_request_check(connection, cookie);
+  if (error) {
+    log_msg(
+        LOG_LEVEL_ERROR,
+        "Failed to send WM_TAKE_FOCUS event (%d)",
+        error->error_code
+    );
+    free(error);
+  }
+
+  xcb_flush(connection);
+}
 
 /* Keyboard */
 static struct xkb_context *create_xkb_context(void) {
@@ -369,6 +413,8 @@ static void handle_xcb_map_request(xcb_map_request_event_t *event) {
     log_msg(LOG_LEVEL_ERROR, "Failed to map window (%d)", error->error_code);
     free(error);
   }
+  /* TODO: remove */
+  window_focus(event->window);
   xcb_flush(connection);
 }
 static void handle_xcb_configure_request(xcb_configure_request_event_t *event) {

@@ -23,7 +23,7 @@ typedef struct {
 
 /* Client type */
 typedef enum {
-  CLIENT_INVALID,
+  CLIENT_INVALID = 0,
   CLIENT_UNMANAGED,
   CLIENT_NORMAL,
   CLIENT_FLOATING,
@@ -49,6 +49,7 @@ static struct xkb_keymap *xkb_keymap = NULL;
 static struct xkb_state *xkb_state = NULL;
 static xcb_atom_t WM_PROTOCOLS = 0;
 static xcb_atom_t WM_DELETE_WINDOW = 0;
+static xcb_atom_t WM_TAKE_FOCUS = 0;
 static uint32_t active_pixel = 0;
 static uint32_t inactive_pixel = 0;
 static client_t clients[MAX_CLIENTS];
@@ -70,6 +71,7 @@ static void eventloop(void);
 static void window_seteventmask(xcb_window_t window, uint32_t event_mask);
 static void window_setrect(xcb_window_t window, rect_t rect);
 static void window_setborder(xcb_window_t window, uint32_t pixel);
+static void window_focus(xcb_window_t window);
 
 /* Keyboard */
 static struct xkb_context *create_xkb_context(void);

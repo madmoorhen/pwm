@@ -15,6 +15,10 @@ int main(int argc, char *argv[]) {
   WM_DELETE_WINDOW = get_atom("WM_DELETE_WINDOW");
   WM_TAKE_FOCUS = get_atom("WM_TAKE_FOCUS");
   _NET_ACTIVE_WINDOW = get_atom("_NET_ACTIVE_WINDOW");
+  _NET_WM_WINDOW_TYPE = get_atom("_NET_WM_WINDOW_TYPE");
+  _NET_WM_WINDOW_TYPE_DIALOG = get_atom("_NET_WM_WINDOW_TYPE_DIALOG");
+  _NET_WM_WINDOW_TYPE_UTILITY = get_atom("_NET_WM_WINDOW_TYPE_UTILITY");
+  _NET_WM_WINDOW_TYPE_SPLASH = get_atom("_NET_WM_WINDOW_TYPE_SPLASH");
   /* Set root event mask */
   window_seteventmask(
       root,
@@ -37,6 +41,7 @@ int main(int argc, char *argv[]) {
 
   /* Clear clients */
   memset(clients, 0, MAX_CLIENTS*sizeof(client_t));
+  focused_client = -1;
 
   /* Event loop */
   running = true;
@@ -75,6 +80,8 @@ static xcb_screen_t *get_screen(void) {
   xcb_screen_t *_screen = screen_iterator.data;
   if (!_screen)
     log_msg(LOG_LEVEL_ERROR, "Failed to get first screen");
+  screen_rect.width = _screen->width_in_pixels;
+  screen_rect.height = _screen->height_in_pixels;
   return _screen;
 }
 static xcb_window_t get_root(void) { return screen->root; }
@@ -93,13 +100,11 @@ static xcb_atom_t get_atom(const char *name) {
       connection, cookie, &error
   );
   if (!reply) {
-    if (error)
-      log_msg(
+    if (error) log_msg(
           LOG_LEVEL_ERROR,
           "Failed to get atom: %s (%d)", name, error->error_code
       );
-    else
-      log_msg(LOG_LEVEL_ERROR, "Failed to get atom: %s", name);
+    else log_msg(LOG_LEVEL_ERROR, "Failed to get atom: %s", name);
   }
   xcb_atom_t atom = reply->atom;
   free(reply);
@@ -366,6 +371,53 @@ static void grab_keymap(uint16_t modifiers, xkb_keysym_t keysym) {
   }
 }
 
+/* Misc */
+static void refresh_layout(void) {
+  uint32_t normal_client_count = 0;
+  int32_t main_client = -1;
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (clients[i].type == CLIENT_NORMAL) {
+      normal_client_count++;
+      if (main_client < 0) main_client = i;
+    }
+  }
+  if (!normal_client_count) return;
+  if (focused_client >= 0) {
+    if (clients[focused_client].type == CLIENT_NORMAL)
+      main_client = focused_client;
+  }
+  if (normal_client_count == 1) {
+    window_setrect(clients[main_client].window, screen_rect);
+    return;
+  }
+  window_setrect(
+      clients[main_client].window,
+      (rect_t){
+        .x = 0, .y = 0,
+        .width = screen_rect.width/2,
+        .height = screen_rect.height
+      }
+  );
+  size_t j = 0;
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (
+      clients[i].type == CLIENT_NORMAL
+      && i != (size_t)main_client
+    ) {
+      window_setrect(
+          clients[i].window,
+          (rect_t){
+            .x = screen_rect.width/2,
+            .y = j*(screen_rect.height/(normal_client_count-1)),
+            .width = screen_rect.width/2,
+            .height = screen_rect.height/(normal_client_count-1)
+          }
+      );
+      j++;
+    }
+  }
+}
+
 /* Keymap handlers */
 static void handle_keymap_quit(
     xcb_key_press_event_t *event, keymap_data_t data
@@ -417,7 +469,31 @@ static void handle_keymap_spawnprocess(
 
 /* XCB handlers */
 static void handle_xcb_create_notify(xcb_create_notify_event_t *event) { }
-static void handle_xcb_destroy_notify(xcb_destroy_notify_event_t *event) { }
+static void handle_xcb_destroy_notify(xcb_destroy_notify_event_t *event) {
+  log_msg(LOG_LEVEL_INFO, "Processing destroy notify...");
+  if (focused_client >= 0) {
+    if (clients[focused_client].window == event->window) {
+      focused_client = -1;
+      for (size_t i = 0; i < MAX_CLIENTS; i++) {
+        if (
+            clients[i].type != CLIENT_INVALID
+            && clients[i].window != event->window
+        ) {
+          focused_client = i;
+          window_focus(clients[i].window);
+          break;
+        }
+      }
+    }
+  }
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (
+        clients[i].type != CLIENT_INVALID
+        && clients[i].window == event->window
+    ) clients[i].type = CLIENT_INVALID;
+  }
+  refresh_layout();
+}
 static void handle_xcb_map_notify(xcb_map_notify_event_t *event) { }
 static void handle_xcb_unmap_notify(xcb_unmap_notify_event_t *event) { }
 static void handle_xcb_reparent_notify(xcb_reparent_notify_event_t *event) { }
@@ -431,9 +507,75 @@ static void handle_xcb_map_request(xcb_map_request_event_t *event) {
     log_msg(LOG_LEVEL_ERROR, "Failed to map window (%d)", error->error_code);
     free(error);
   }
-  /* TODO: remove */
-  window_focus(event->window);
   xcb_flush(connection);
+
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (clients[i].type != CLIENT_INVALID && event->window == clients[i].window)
+      return;
+  }
+  client_t client = {
+    .window = event->window,
+    .rect = { .x = 0, .y = 0, .width = 0, .height = 0 },
+    .type = CLIENT_NORMAL
+  };
+  
+  xcb_get_window_attributes_cookie_t attr_cookie = xcb_get_window_attributes(
+      connection, event->window
+  );
+  xcb_get_window_attributes_reply_t *attr_reply =
+      xcb_get_window_attributes_reply(
+          connection, attr_cookie, &error
+      );
+  if (!attr_reply) {
+    if (error) log_msg(
+          LOG_LEVEL_ERROR,
+          "Failed to get window attributes (%d)", error->error_code
+      );
+    else log_msg(LOG_LEVEL_ERROR, "Failed to get window attributes");
+  }
+  if (attr_reply->override_redirect) client.type = CLIENT_UNMANAGED;
+  free(attr_reply);
+
+  xcb_get_property_cookie_t prop_cookie = xcb_get_property(
+      connection, 0, event->window,
+      _NET_WM_WINDOW_TYPE, XCB_ATOM_ATOM,
+      0, UINT32_MAX
+  );
+  xcb_get_property_reply_t *prop_reply = xcb_get_property_reply(
+      connection, prop_cookie, &error
+  );
+  if (!prop_reply) {
+    if (error) log_msg(
+          LOG_LEVEL_ERROR,
+          "Failed to get window _NET_WM_WINDOW_TYPE property (%d)",
+          error->error_code
+      );
+    else log_msg(
+          LOG_LEVEL_ERROR, "Failed to get window _NET_WM_WINDOW_TYPE property"
+      );
+  }
+  xcb_atom_t *window_types = (xcb_atom_t *)xcb_get_property_value(prop_reply);
+  size_t num_window_types =
+      xcb_get_property_value_length(prop_reply) / sizeof(xcb_atom_t);
+  for (size_t i = 0; i < num_window_types; i++) {
+    if (
+        window_types[i] == _NET_WM_WINDOW_TYPE_DIALOG
+        || window_types[i] == _NET_WM_WINDOW_TYPE_UTILITY
+        || window_types[i] == _NET_WM_WINDOW_TYPE_SPLASH
+    ) client.type = CLIENT_FLOATING;
+  }
+  free(prop_reply);
+
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (clients[i].type == CLIENT_INVALID) {
+      clients[i] = client;
+      focused_client = i;
+      if (clients[focused_client].type != CLIENT_UNMANAGED)
+        window_focus(client.window);
+      break;
+    }
+  }
+  refresh_layout();
 }
 static void handle_xcb_configure_request(xcb_configure_request_event_t *event) {
   log_msg(LOG_LEVEL_INFO, "Processing configure request...");

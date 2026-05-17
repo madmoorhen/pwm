@@ -27,7 +27,6 @@ typedef enum {
   CLIENT_UNMANAGED,
   CLIENT_NORMAL,
   CLIENT_FLOATING,
-  CLIENT_FULLSCREEN,
 } client_type_t;
 
 /* Client */
@@ -42,6 +41,7 @@ static bool running = false;
 static xcb_connection_t *connection = NULL;
 static const xcb_setup_t *setup = NULL;
 static xcb_screen_t *screen = NULL;
+static rect_t screen_rect = { .x = 0, .y = 0, .width = 0, .height = 0 };
 static xcb_window_t root = 0;
 static xcb_colormap_t colormap = 0;
 static struct xkb_context *xkb_context = NULL;
@@ -51,10 +51,14 @@ static xcb_atom_t WM_PROTOCOLS = 0;
 static xcb_atom_t WM_DELETE_WINDOW = 0;
 static xcb_atom_t WM_TAKE_FOCUS = 0;
 static xcb_atom_t _NET_ACTIVE_WINDOW = 0;
+static xcb_atom_t _NET_WM_WINDOW_TYPE = 0;
+static xcb_atom_t _NET_WM_WINDOW_TYPE_DIALOG = 0;
+static xcb_atom_t _NET_WM_WINDOW_TYPE_UTILITY = 0;
+static xcb_atom_t _NET_WM_WINDOW_TYPE_SPLASH = 0;
 static uint32_t active_pixel = 0;
 static uint32_t inactive_pixel = 0;
 static client_t clients[MAX_CLIENTS];
-static uint32_t focused_client;
+static int32_t focused_client;
 
 /* Setup */
 static xcb_connection_t *get_connection(void);
@@ -82,6 +86,9 @@ static void unref_xkb_context(void);
 static void unref_xkb_keymap(void);
 static void unref_xkb_state(void);
 static void grab_keymap(uint16_t modifiers, xkb_keysym_t keysym);
+
+/* Misc */
+static void refresh_layout(void);
 
 /* Keymap data */
 typedef union {

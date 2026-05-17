@@ -482,6 +482,22 @@ static void handle_keymap_spawnprocess(
     execvp(((char **)data.ptr)[0], ((char **)data.ptr));
   }
 }
+static void handle_keymap_cyclefocus(
+    xcb_key_press_event_t *event, keymap_data_t data
+) {
+  if (focused_client < 0) return;
+
+  /* Prevent infinite loop if focus is hanging */
+  bool found_one = false;
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (clients[i].type != CLIENT_INVALID) found_one = true;
+  }
+  if (!found_one) return;
+
+  size_t cursor = (size_t)(focused_client+1);
+  while (clients[cursor%MAX_CLIENTS].type == CLIENT_INVALID) cursor++;
+  client_focus(cursor%MAX_CLIENTS);
+}
 
 /* XCB handlers */
 static void handle_xcb_create_notify(xcb_create_notify_event_t *event) { }

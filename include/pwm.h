@@ -114,6 +114,9 @@ static void handle_keymap_destroy(
 static void handle_keymap_spawnprocess(
     xcb_key_press_event_t *event, keymap_data_t data
 );
+static void handle_keymap_cyclefocus(
+    xcb_key_press_event_t *event, keymap_data_t data
+);
 /* Keymaps */
 const keymap_t _KEYMAPS[] = { KEYMAPS };
 #define NUM_KEYMAPS (sizeof(_KEYMAPS)/sizeof(keymap_t))

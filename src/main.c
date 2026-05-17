@@ -387,15 +387,22 @@ static void refresh_layout(void) {
       main_client = focused_client;
   }
   if (normal_client_count == 1) {
-    window_setrect(clients[main_client].window, screen_rect);
+    window_setrect(
+        clients[main_client].window,
+        (rect_t){
+          .x = 0, .y = 0,
+          .width = screen_rect.width - BORDER_WIDTH*2,
+          .height = screen_rect.height - BORDER_WIDTH*2
+        }
+    );
     return;
   }
   window_setrect(
       clients[main_client].window,
       (rect_t){
         .x = 0, .y = 0,
-        .width = screen_rect.width/2,
-        .height = screen_rect.height
+        .width = screen_rect.width/2 - BORDER_WIDTH,
+        .height = screen_rect.height - BORDER_WIDTH*2
       }
   );
   size_t j = 0;
@@ -407,10 +414,10 @@ static void refresh_layout(void) {
       window_setrect(
           clients[i].window,
           (rect_t){
-            .x = screen_rect.width/2,
+            .x = screen_rect.width/2 + BORDER_WIDTH,
             .y = j*(screen_rect.height/(normal_client_count-1)),
-            .width = screen_rect.width/2,
-            .height = screen_rect.height/(normal_client_count-1)
+            .width = screen_rect.width/2 - BORDER_WIDTH,
+            .height = screen_rect.height/(normal_client_count-1) - BORDER_WIDTH
           }
       );
       j++;

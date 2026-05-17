@@ -50,6 +50,7 @@ static struct xkb_state *xkb_state = NULL;
 static xcb_atom_t WM_PROTOCOLS = 0;
 static xcb_atom_t WM_DELETE_WINDOW = 0;
 static xcb_atom_t WM_TAKE_FOCUS = 0;
+static xcb_atom_t _NET_ACTIVE_WINDOW = 0;
 static uint32_t active_pixel = 0;
 static uint32_t inactive_pixel = 0;
 static client_t clients[MAX_CLIENTS];

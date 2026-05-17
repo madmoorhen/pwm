@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
   WM_PROTOCOLS = get_atom("WM_PROTOCOLS");
   WM_DELETE_WINDOW = get_atom("WM_DELETE_WINDOW");
   WM_TAKE_FOCUS = get_atom("WM_TAKE_FOCUS");
+  _NET_ACTIVE_WINDOW = get_atom("_NET_ACTIVE_WINDOW");
   /* Set root event mask */
   window_seteventmask(
       root,
@@ -265,6 +266,23 @@ static void window_focus(xcb_window_t window) {
     log_msg(
         LOG_LEVEL_ERROR,
         "Failed to send WM_TAKE_FOCUS event (%d)",
+        error->error_code
+    );
+    free(error);
+  }
+
+  const xcb_window_t w = window;
+  cookie = xcb_change_property(
+      connection,
+      XCB_PROP_MODE_REPLACE, root,
+      _NET_ACTIVE_WINDOW, XCB_ATOM_WINDOW,
+      32, 1, &w
+  );
+  error = xcb_request_check(connection, cookie);
+  if (error) {
+    log_msg(
+        LOG_LEVEL_ERROR,
+        "Failed to change _NET_ACTIVE_WINDOW property (%d)",
         error->error_code
     );
     free(error);

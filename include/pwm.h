@@ -57,8 +57,11 @@ static xcb_atom_t _NET_WM_WINDOW_TYPE_UTILITY = 0;
 static xcb_atom_t _NET_WM_WINDOW_TYPE_SPLASH = 0;
 static uint32_t active_pixel = 0;
 static uint32_t inactive_pixel = 0;
-static client_t clients[MAX_CLIENTS];
-static int32_t focused_client;
+static client_t _clients[MAX_CLIENTS][NUM_WORKSPACES];
+#define clients (_clients[current_workspace])
+static int32_t _focused_client[NUM_WORKSPACES];
+#define focused_client (_focused_client[current_workspace])
+static uint32_t current_workspace = 0;
 
 /* Setup */
 static xcb_connection_t *get_connection(void);

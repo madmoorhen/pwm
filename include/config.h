@@ -25,12 +25,12 @@ static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
 static const char *browsercmd[] = { "brave", (void *)(0) };
 /* Keymaps */
 #define KEYMAPS \
-    { MOD4|SHIFT, XKB_KEY_c, handle_keymap_quit, { .i32 = 0 } },\
-    { MOD4|SHIFT, XKB_KEY_q, handle_keymap_destroy, { .i32 = 0 } },\
-    { MOD4, XKB_KEY_Return, handle_keymap_spawnprocess, { .ptr = termcmd } },\
-    { MOD4, XKB_KEY_d, handle_keymap_spawnprocess, { .ptr = dmenucmd } },\
-    { MOD4, XKB_KEY_b, handle_keymap_spawnprocess, { .ptr = browsercmd } },\
-    { MOD4, XKB_KEY_space, handle_keymap_cyclefocus, { .i32 = 0 } },
+    { MOD1|SHIFT, XKB_KEY_c, handle_keymap_quit, { .i32 = 0 } },\
+    { MOD1|SHIFT, XKB_KEY_q, handle_keymap_destroy, { .i32 = 0 } },\
+    { MOD1, XKB_KEY_Return, handle_keymap_spawnprocess, { .ptr = termcmd } },\
+    { MOD1, XKB_KEY_d, handle_keymap_spawnprocess, { .ptr = dmenucmd } },\
+    { MOD1, XKB_KEY_b, handle_keymap_spawnprocess, { .ptr = browsercmd } },\
+    { MOD1, XKB_KEY_space, handle_keymap_cyclefocus, { .i32 = 0 } },
 
 /* Misc */
 #define MAX_CLIENTS 0xffff

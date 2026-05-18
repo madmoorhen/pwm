@@ -40,10 +40,8 @@ int main(int argc, char *argv[]) {
     grab_keymap(_KEYMAPS[i].modifiers, _KEYMAPS[i].keysym);
 
   /* Clear clients */
-  for (size_t i = 0; i < NUM_WORKSPACES; i++) {
-    memset(_clients[i], 0, MAX_CLIENTS*sizeof(client_t));
-    _focused_client[i] = -1;
-  }
+  memset(clients, 0, MAX_CLIENTS*sizeof(client_t));
+  focused_client = -1;
 
   /* Event loop */
   running = true;
@@ -543,13 +541,10 @@ static void handle_xcb_map_request(xcb_map_request_event_t *event) {
   }
   xcb_flush(connection);
 
-  for (size_t i = 0; i < NUM_WORKSPACES; i++) {
-    for (size_t j = 0; j < MAX_CLIENTS; j++) {
-      if (
-        _clients[i][j].type != CLIENT_INVALID
-        && event->window == _clients[i][j].window
-      ) return;
-    }
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (
+      clients[i].type != CLIENT_INVALID && event->window == clients[i].window
+    ) return;
   }
   client_t client = {
     .window = event->window,

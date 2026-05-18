@@ -6,7 +6,7 @@ BIN_DIR=bin
 
 CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c11 -ggdb -I$(INC_DIR)
 CFLAGS += -Wno-unused
-LDFLAGS = -lxcb -lxkbcommon -lm
+LDFLAGS = -lxcb -lxkbcommon
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))

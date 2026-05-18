@@ -34,6 +34,7 @@ typedef struct {
   xcb_window_t window;
   rect_t rect;
   client_type_t type;
+  uint32_t workspace;
 } client_t;
 
 /* Global state */
@@ -58,7 +59,8 @@ static xcb_atom_t _NET_WM_WINDOW_TYPE_SPLASH = 0;
 static uint32_t active_pixel = 0;
 static uint32_t inactive_pixel = 0;
 static client_t clients[MAX_CLIENTS];
-static int32_t focused_client;
+static int32_t focused_client = -1;
+static uint32_t current_workspace = 1;
 
 /* Setup */
 static xcb_connection_t *get_connection(void);
@@ -117,6 +119,13 @@ static void handle_keymap_spawnprocess(
 static void handle_keymap_cyclefocus(
     xcb_key_press_event_t *event, keymap_data_t data
 );
+static void handle_keymap_setworkspace(
+    xcb_key_press_event_t *event, keymap_data_t data
+);
+static void handle_keymap_movetoworkspace(
+    xcb_key_press_event_t *event, keymap_data_t data
+);
+
 /* Keymaps */
 const keymap_t _KEYMAPS[] = { KEYMAPS };
 #define NUM_KEYMAPS (sizeof(_KEYMAPS)/sizeof(keymap_t))

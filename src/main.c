@@ -41,7 +41,6 @@ int main(int argc, char *argv[]) {
 
   /* Clear clients */
   memset(clients, 0, MAX_CLIENTS*sizeof(client_t));
-  focused_client = -1;
 
   /* Event loop */
   running = true;
@@ -376,15 +375,20 @@ static void refresh_layout(void) {
   uint32_t normal_client_count = 0;
   int32_t main_client = -1;
   for (size_t i = 0; i < MAX_CLIENTS; i++) {
-    if (clients[i].type == CLIENT_NORMAL) {
+    if (
+      clients[i].type == CLIENT_NORMAL
+      && clients[i].workspace == current_workspace
+    ) {
       normal_client_count++;
       if (main_client < 0) main_client = i;
     }
   }
   if (!normal_client_count) return;
   if (focused_client >= 0) {
-    if (clients[focused_client].type == CLIENT_NORMAL)
-      main_client = focused_client;
+    if (
+      clients[focused_client].type == CLIENT_NORMAL
+      && clients[focused_client].workspace == current_workspace
+    ) main_client = focused_client;
   }
   if (normal_client_count == 1) {
     window_setrect(
@@ -409,6 +413,7 @@ static void refresh_layout(void) {
   for (size_t i = 0; i < MAX_CLIENTS; i++) {
     if (
       clients[i].type == CLIENT_NORMAL
+      && clients[i].workspace == current_workspace
       && i != (size_t)main_client
     ) {
       window_setrect(
@@ -429,6 +434,11 @@ static void client_focus(int32_t client) {
     window_setborder(clients[focused_client].window, inactive_pixel);
   focused_client = client;
   if (focused_client >= 0) {
+    /*
+     * It doesn't make much sense to focus clients that aren't in the current
+     * workspace, but checking for it doesn't matter. If that changes, this
+     * would be the place to add a check.
+     */
     window_setborder(clients[focused_client].window, active_pixel);
     window_focus(clients[focused_client].window);
   }
@@ -491,13 +501,82 @@ static void handle_keymap_cyclefocus(
   /* Prevent infinite loop if focus is hanging */
   bool found_one = false;
   for (size_t i = 0; i < MAX_CLIENTS; i++) {
-    if (clients[i].type != CLIENT_INVALID) found_one = true;
+    if (
+      clients[i].type != CLIENT_INVALID
+      && clients[i].workspace == current_workspace
+    ) found_one = true;
   }
   if (!found_one) return;
 
   size_t cursor = (size_t)(focused_client+1);
-  while (clients[cursor%MAX_CLIENTS].type == CLIENT_INVALID) cursor++;
+  while (
+    clients[cursor%MAX_CLIENTS].type == CLIENT_INVALID
+    || clients[cursor%MAX_CLIENTS].workspace != current_workspace
+  ) cursor++;
   client_focus(cursor%MAX_CLIENTS);
+}
+static void handle_keymap_setworkspace(
+    xcb_key_press_event_t *event, keymap_data_t data
+) {
+  xcb_void_cookie_t cookie;
+  xcb_generic_error_t *error;
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (
+      clients[i].type != CLIENT_INVALID
+      && clients[i].workspace == current_workspace
+    ) {
+      cookie = xcb_unmap_window(connection, clients[i].window);
+      error = xcb_request_check(connection, cookie);
+      if (error) {
+        log_msg(
+            LOG_LEVEL_ERROR, "Failed to unmap windnow (%d)", error->error_code
+        );
+        free(error);
+      }
+    }
+  }
+  current_workspace = (uint32_t)(data.i32);
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (
+      clients[i].type != CLIENT_INVALID
+      && clients[i].workspace == current_workspace
+    ) {
+      cookie = xcb_map_window(connection, clients[i].window);
+      error = xcb_request_check(connection, cookie);
+      if (error) {
+        log_msg(
+            LOG_LEVEL_ERROR, "Failed to map windnow (%d)", error->error_code
+        );
+        free(error);
+      }
+    }
+  }
+  xcb_flush(connection);
+  client_focus(-1);
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (
+        clients[i].type != CLIENT_INVALID
+        && clients[i].workspace == current_workspace
+    ) {
+      client_focus(i);
+      break;
+    }
+  }
+}
+static void handle_keymap_movetoworkspace(
+    xcb_key_press_event_t *event, keymap_data_t data
+) {
+  int32_t client = -1;
+  for (size_t i = 0; i < MAX_CLIENTS; i++) {
+    if (
+      clients[i].type != CLIENT_INVALID
+      && clients[i].window == event->child
+    ) client = i;
+  }
+  if (client < 0) return;
+  clients[client].workspace = data.i32;
+  handle_keymap_setworkspace(NULL, data);
+  client_focus(client);
 }
 
 /* XCB handlers */
@@ -509,8 +588,9 @@ static void handle_xcb_destroy_notify(xcb_destroy_notify_event_t *event) {
       client_focus(-1);
       for (size_t i = 0; i < MAX_CLIENTS; i++) {
         if (
-            clients[i].type != CLIENT_INVALID
-            && clients[i].window != event->window
+          clients[i].type != CLIENT_INVALID
+          && clients[i].window != event->window
+          && clients[i].workspace == current_workspace
         ) {
           client_focus(i);
           break;
@@ -520,8 +600,8 @@ static void handle_xcb_destroy_notify(xcb_destroy_notify_event_t *event) {
   }
   for (size_t i = 0; i < MAX_CLIENTS; i++) {
     if (
-        clients[i].type != CLIENT_INVALID
-        && clients[i].window == event->window
+      clients[i].type != CLIENT_INVALID
+      && clients[i].window == event->window
     ) clients[i].type = CLIENT_INVALID;
   }
   refresh_layout();
@@ -549,7 +629,8 @@ static void handle_xcb_map_request(xcb_map_request_event_t *event) {
   client_t client = {
     .window = event->window,
     .rect = { .x = 0, .y = 0, .width = 0, .height = 0 },
-    .type = CLIENT_NORMAL
+    .type = CLIENT_NORMAL,
+    .workspace = current_workspace
   };
   
   xcb_get_window_attributes_cookie_t attr_cookie = xcb_get_window_attributes(

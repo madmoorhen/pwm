@@ -25,12 +25,32 @@ static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
 static const char *browsercmd[] = { "brave", (void *)(0) };
 /* Keymaps */
 #define KEYMAPS \
-    { MOD1|SHIFT, XKB_KEY_c, handle_keymap_quit, { .i32 = 0 } },\
-    { MOD1|SHIFT, XKB_KEY_q, handle_keymap_destroy, { .i32 = 0 } },\
-    { MOD1, XKB_KEY_Return, handle_keymap_spawnprocess, { .ptr = termcmd } },\
-    { MOD1, XKB_KEY_d, handle_keymap_spawnprocess, { .ptr = dmenucmd } },\
-    { MOD1, XKB_KEY_b, handle_keymap_spawnprocess, { .ptr = browsercmd } },\
-    { MOD1, XKB_KEY_space, handle_keymap_cyclefocus, { .i32 = 0 } },
+    { MOD4|SHIFT, XKB_KEY_c, handle_keymap_quit, { .i32 = 0 } },\
+    { MOD4|SHIFT, XKB_KEY_q, handle_keymap_destroy, { .i32 = 0 } },\
+    { MOD4, XKB_KEY_Return, handle_keymap_spawnprocess, { .ptr = termcmd } },\
+    { MOD4, XKB_KEY_d, handle_keymap_spawnprocess, { .ptr = dmenucmd } },\
+    { MOD4, XKB_KEY_b, handle_keymap_spawnprocess, { .ptr = browsercmd } },\
+    { MOD4, XKB_KEY_space, handle_keymap_cyclefocus, { .i32 = 0 } },\
+    { MOD4, XKB_KEY_0, handle_keymap_setworkspace, { .i32 = 0 } },\
+    { MOD4, XKB_KEY_1, handle_keymap_setworkspace, { .i32 = 1 } },\
+    { MOD4, XKB_KEY_2, handle_keymap_setworkspace, { .i32 = 2 } },\
+    { MOD4, XKB_KEY_3, handle_keymap_setworkspace, { .i32 = 3 } },\
+    { MOD4, XKB_KEY_4, handle_keymap_setworkspace, { .i32 = 4 } },\
+    { MOD4, XKB_KEY_5, handle_keymap_setworkspace, { .i32 = 5 } },\
+    { MOD4, XKB_KEY_6, handle_keymap_setworkspace, { .i32 = 6 } },\
+    { MOD4, XKB_KEY_7, handle_keymap_setworkspace, { .i32 = 7 } },\
+    { MOD4, XKB_KEY_8, handle_keymap_setworkspace, { .i32 = 8 } },\
+    { MOD4, XKB_KEY_9, handle_keymap_setworkspace, { .i32 = 9 } },\
+    { MOD4|SHIFT, XKB_KEY_0, handle_keymap_movetoworkspace, { .i32 = 0 } },\
+    { MOD4|SHIFT, XKB_KEY_1, handle_keymap_movetoworkspace, { .i32 = 1 } },\
+    { MOD4|SHIFT, XKB_KEY_2, handle_keymap_movetoworkspace, { .i32 = 2 } },\
+    { MOD4|SHIFT, XKB_KEY_3, handle_keymap_movetoworkspace, { .i32 = 3 } },\
+    { MOD4|SHIFT, XKB_KEY_4, handle_keymap_movetoworkspace, { .i32 = 4 } },\
+    { MOD4|SHIFT, XKB_KEY_5, handle_keymap_movetoworkspace, { .i32 = 5 } },\
+    { MOD4|SHIFT, XKB_KEY_6, handle_keymap_movetoworkspace, { .i32 = 6 } },\
+    { MOD4|SHIFT, XKB_KEY_7, handle_keymap_movetoworkspace, { .i32 = 7 } },\
+    { MOD4|SHIFT, XKB_KEY_8, handle_keymap_movetoworkspace, { .i32 = 8 } },\
+    { MOD4|SHIFT, XKB_KEY_9, handle_keymap_movetoworkspace, { .i32 = 9 } },
 
 /* Misc */
 #define MAX_CLIENTS 0xffff

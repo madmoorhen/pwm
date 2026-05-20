@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <xkbcommon/xkbcommon.h>
 #include <config.h>
 #include <logging.h>

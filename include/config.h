@@ -8,7 +8,7 @@
 
 /* Colors */
 #define INACTIVE_BORDER 0x111111
-#define ACTIVE_BORDER 0xb3ebf2
+#define ACTIVE_BORDER 0xcccccc
 
 /* Keymaps - keys*/
 #define SHIFT XCB_MOD_MASK_SHIFT

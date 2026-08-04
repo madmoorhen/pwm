@@ -29,6 +29,7 @@ clean:
 	rm -rf $(OBJ_DIR)
 	rm -rf $(BIN_DIR)
 
+test: CFLAGS += -DMAINMOD=MOD1
 test: build
 	Xephyr -br -ac -noreset -screen 1280x720 :2&
 	@sleep 1

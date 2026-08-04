@@ -8,7 +8,6 @@ int main(int argc, char *argv[]) {
   setup = get_setup();
   screen = get_screen();
   root = get_root();
-  colormap = get_colormap();
   log_setup_info();
   /* Get atoms */
   WM_PROTOCOLS = get_atom("WM_PROTOCOLS");
@@ -30,6 +29,7 @@ int main(int argc, char *argv[]) {
       | XCB_EVENT_MASK_PROPERTY_CHANGE
   );
   /* Colormap stuff */
+  colormap = create_colormap();
   inactive_pixel = get_pixel(INACTIVE_BORDER);
   active_pixel = get_pixel(ACTIVE_BORDER);
   /* Keyboard setup */
@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
   while (running) eventloop();
 
   /* Cleanup */
+  free_colormap();
   unref_xkb_state();
   unref_xkb_keymap();
   unref_xkb_context();
@@ -84,7 +85,28 @@ static xcb_screen_t *get_screen(void) {
   return _screen;
 }
 static xcb_window_t get_root(void) { return screen->root; }
-static xcb_colormap_t get_colormap(void) { return screen->default_colormap; }
+static xcb_colormap_t create_colormap(void) {
+  xcb_colormap_t cmap = xcb_generate_id(connection);
+  xcb_void_cookie_t cookie = xcb_create_colormap(
+      connection, XCB_COLORMAP_ALLOC_NONE, cmap, root, screen->root_visual
+  );
+  xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+  if (error) {
+    int error_code = error->error_code;
+    free(error);
+    log_msg(LOG_LEVEL_ERROR, "Failed to create colourmap (%d)", error_code);
+  }
+  return cmap;
+}
+static void free_colormap(void) {
+  xcb_void_cookie_t cookie = xcb_free_colormap(connection, colormap);
+  xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+  if (error) {
+    int error_code = error->error_code;
+    free(error);
+    log_msg(LOG_LEVEL_ERROR, "Failed to free colourmap (%d)", error_code);
+  }
+}
 static xcb_atom_t get_atom(const char *name) {
   /*
    * It would be better to query for all atoms before reading replies, making
@@ -143,9 +165,9 @@ static uint32_t get_pixel(uint32_t color) {
   xcb_generic_error_t *error = NULL;
   xcb_alloc_color_cookie_t cookie = xcb_alloc_color(
       connection, colormap,
-      (color >> 16) | 0xff,
-      (color >> 8) | 0xff,
-      color | 0xff
+      ((float)((color >> 16) & 0xff)/(float)0xff)*0xffff,
+      ((float)((color >> 8) & 0xff)/(float)0xff)*0xffff,
+      ((float)(color & 0xff)/(float)0xff)*0xffff
   );
   xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(
       connection, cookie, &error

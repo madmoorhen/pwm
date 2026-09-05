@@ -7,7 +7,7 @@
 #define ANSI_LOGS 1 /* Enable formatted logs with ANSI escape codes */
 
 /* Colors */
-#define INACTIVE_BORDER 0x000000
+#define INACTIVE_BORDER 0x333333
 #define ACTIVE_BORDER 0xffffff
 
 /* Keymaps - keys*/

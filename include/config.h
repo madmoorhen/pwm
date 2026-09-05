@@ -25,7 +25,7 @@
 /* Keymaps - commands */
 static const char *termcmd[] = { "alacritty", (void *)(0) };
 static const char *dmenucmd[] = { "dmenu_run", (void *)(0) };
-static const char *browsercmd[] = { "brave", (void *)(0) };
+static const char *browsercmd[] = { "brave-browser-stable", (void *)(0) };
 /* Keymaps */
 #define KEYMAPS \
     { MAINMOD|SHIFT, XKB_KEY_c, handle_keymap_quit, { .i32 = 0 } },\

@@ -230,7 +230,7 @@ static void window_setrect(xcb_window_t window, rect_t rect) {
   }
 }
 static void window_setborder(xcb_window_t window, uint32_t pixel) {
-  uint32_t value_list[] = { BORDER_WIDTH };
+  uint32_t value_list[] = { borders_enabled ? BORDER_WIDTH : 0 };
   xcb_void_cookie_t cookie = xcb_configure_window(
       connection, window,
       XCB_CONFIG_WINDOW_BORDER_WIDTH, value_list
@@ -421,6 +421,7 @@ static void refresh_layout(void) {
           .height = screen_rect.height - BORDER_WIDTH*2
         }
     );
+    window_setborder(clients[main_client].window, active_pixel);
     return;
   }
   window_setrect(
@@ -431,6 +432,7 @@ static void refresh_layout(void) {
         .height = screen_rect.height - BORDER_WIDTH*2
       }
   );
+  window_setborder(clients[main_client].window, active_pixel);
   size_t j = 0;
   for (size_t i = 0; i < MAX_CLIENTS; i++) {
     if (
@@ -447,6 +449,7 @@ static void refresh_layout(void) {
             .height = screen_rect.height/(normal_client_count-1) - BORDER_WIDTH
           }
       );
+      window_setborder(clients[main_client].window, inactive_pixel);
       j++;
     }
   }
@@ -600,6 +603,12 @@ static void handle_keymap_movetoworkspace(
   handle_keymap_setworkspace(NULL, data);
   client_focus(client);
 }
+static void handle_keymap_toggleborders(
+    xcb_key_press_event_t *event, keymap_data_t data
+) {
+  borders_enabled = !borders_enabled;
+  refresh_layout();
+}
 
 /* XCB handlers */
 static void handle_xcb_create_notify(xcb_create_notify_event_t *event) { }
@@ -663,6 +672,13 @@ static void handle_xcb_map_request(xcb_map_request_event_t *event) {
           connection, attr_cookie, &error
       );
   if (!attr_reply) {
+    /* Bad window errors mean this window has since gone - ignore it */
+    if (error->error_code == XCB_WINDOW) {
+      log_msg(
+          LOG_LEVEL_WARNING, "Failed to get window attributes (Bad window)"
+      );
+      return;
+    }
     if (error) log_msg(
           LOG_LEVEL_ERROR,
           "Failed to get window attributes (%d)", error->error_code

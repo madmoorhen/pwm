@@ -34,6 +34,7 @@ static const char *browsercmd[] = { "brave", (void *)(0) };
     { MAINMOD, XKB_KEY_d, handle_keymap_spawnprocess, { .ptr = dmenucmd } },\
     { MAINMOD, XKB_KEY_b, handle_keymap_spawnprocess, { .ptr = browsercmd } },\
     { MAINMOD, XKB_KEY_space, handle_keymap_cyclefocus, { .i32 = 0 } },\
+    { MAINMOD|SHIFT, XKB_KEY_b, handle_keymap_toggleborders, { .i32 = 0} },\
     { MAINMOD, XKB_KEY_0, handle_keymap_setworkspace, { .i32 = 0 } },\
     { MAINMOD, XKB_KEY_1, handle_keymap_setworkspace, { .i32 = 1 } },\
     { MAINMOD, XKB_KEY_2, handle_keymap_setworkspace, { .i32 = 2 } },\

@@ -60,6 +60,7 @@ static uint32_t inactive_pixel = 0;
 static client_t clients[MAX_CLIENTS];
 static int32_t focused_client = -1;
 static uint32_t current_workspace = 1;
+static uint32_t borders_enabled = false;
 
 /* Setup */
 static xcb_connection_t *get_connection(void);
@@ -123,6 +124,9 @@ static void handle_keymap_setworkspace(
     xcb_key_press_event_t *event, keymap_data_t data
 );
 static void handle_keymap_movetoworkspace(
+    xcb_key_press_event_t *event, keymap_data_t data
+);
+static void handle_keymap_toggleborders(
     xcb_key_press_event_t *event, keymap_data_t data
 );
 
